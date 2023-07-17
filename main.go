@@ -43,13 +43,28 @@ func main() {
 	go func() {
 		for true {
 			data := generateData()
-			vec.Reset()
+			secondVec := prometheus.NewGaugeVec(
+				prometheus.GaugeOpts{
+					Name: "testMetric",
+					Help: "A not very useful metric",
+				},
+				[]string{"queue"},
+			)
 
 			for queue, val := range data {
-				vec.WithLabelValues(queue).Set(val)
+				secondVec.WithLabelValues(queue).Set(val)
 			}
 
-			fmt.Println("Data regenerated")
+			start := time.Now()
+
+			reg.Unregister(vec)
+			reg.MustRegister(secondVec)
+
+			duration := time.Since(start).Microseconds()
+
+			vec = secondVec
+
+			fmt.Printf("Data regenerated, swap took %dms\n", duration)
 			time.Sleep(10 * time.Second)
 		}
 	}()
